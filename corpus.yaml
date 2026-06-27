@@ -225,10 +225,10 @@ corpus:
       exploit_primitive: "Node.js --require startup via lowercase env var name"
       discovery: ["Manual code review", "Platform-specific testing", "Case-variant testing"]
 
---- Statistics ---
+# Statistics ---
 # By severity: Critical 7, High 14, Medium 2
-# By type: RCE/ACE 7, UAF→Calc 2, OOB-W→Calc/RCE 2, LPE 2, Priv Esc 1, Auth Bypass 1,
+# By type: RCE/ACE 7, UAF->Calc 2, OOB-W->Calc/RCE 2, LPE 2, Priv Esc 1, Auth Bypass 1,
 #           Container Escape 1, HTTP Smuggling 1, Info Leak 1, Parser Bug/DoS 2,
 #           Defender Bypass 1, TOCTOU 1, Hijack 1
-# By language: C/C++ 8, PHP 2, JS/TS/Electron 2, Go 2, Java 2, Rust 1, +multi
+# By language: C/C++ 8, PHP 2, JS/TS/Electron 3, Go 2, Java 2, Rust 1, +multi
 # CVEs assigned: 1 (CVE-2026-55200)

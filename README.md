@@ -52,11 +52,12 @@ This corpus is a structured, machine-readable dataset of 23 real-world vulnerabi
 |----------|-------|
 | C / C++ | 8 (EX-005, EX-006, EX-010, EX-012, EX-016, EX-017, EX-019, EX-022) |
 | PHP | 2 (EX-004, EX-013) |
-| JavaScript / TypeScript / Electron | 2 (EX-018, EX-021, EX-023) |
+| JavaScript / TypeScript / Electron | 3 (EX-018, EX-021, EX-023) |
 | Go | 2 (EX-003, EX-014) |
 | Java | 2 (EX-008, EX-015) |
 | Rust | 1 (EX-011) |
-| C++ / C# (multi) | 2 (EX-001, EX-020, EX-017) |
+| C++ (multi-stack) | 2 (EX-001, EX-020) |
+| C# | 1 (EX-017) |
 
 ## Entry Format
 
