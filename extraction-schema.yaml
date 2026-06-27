@@ -1,0 +1,414 @@
+# Exploitarium Vulnerability Extraction Schema
+# Schema Version: 1.0
+# Purpose: Standardized YAML format for extracting vulnerability information
+#          using the structured research reconstruction methodology.
+# Methodology: Facts → Research Timeline → Alternative Paths → Heuristics → Confidence
+
+---
+
+## Schema Definition
+
+```yaml
+# =============================================================================
+# ROOT: One document per vulnerability entry
+# =============================================================================
+vulnerability:
+  # --- METADATA (REQUIRED) ---
+  id: ""                           # Entry ID or CVE (e.g., "entry-001", "CVE-2026-55200")
+  title: ""                        # Brief vulnerability title
+  aliases: []                      # Alternative identifiers (optional)
+  
+  # --- TARGET INFORMATION (REQUIRED) ---
+  target:
+    product: ""                    # Product name
+    version_affected: ""           # Affected version(s)
+    language: ""                   # Implementation language(s)
+    operating_system: []           # Affected OSes
+    component: ""                  # Affected component/module
+    discovery_date: null           # ISO 8601 date
+  
+  # --- CLASSIFICATION (REQUIRED) ---
+  classification:
+    cwe_id: ""                     # CWE identifier (optional)
+    cve_id: ""                     # CVE identifier (optional)
+    type: ""                       # Vulnerability type
+    severity: ""                   # Critical / High / Medium / Low
+    cvss_vector: ""                # CVSS vector string (optional)
+    cvss_score: null               # CVSS numeric score (optional)
+
+  # --- PHASE 1: FACTS (REQUIRED) ---
+  facts:
+    - claim: ""                    # Observable, evidence-tethered statement
+      evidence_type: ""            # "source_code" / "dynamic_analysis" / "runtime_trace" / "poc_output"
+      source: ""                   # File path, log reference, or tool output
+      confidence: "FACT"           # Always FACT in this section
+
+  # --- PHASE 2: RESEARCH PROCESS (OPTIONAL) ---
+  research_process:
+    entry_point: ""                # Where would a researcher begin?
+    files_to_inspect: []           # Key files/APIs to review
+    trust_boundaries: []           # Key trust boundaries
+    invariants: []                 # Important invariants
+    tools: []                      # Useful tools (debuggers, fuzzers, analyzers)
+
+  # --- PHASE 3: RESEARCH TIMELINE (OPTIONAL) ---
+  research_timeline:
+    - step: 1
+      action: ""                   # "Notices..." / "Reads source..." / "Finds function..."
+      detail: ""
+
+  # --- PHASE 4: ALTERNATIVE DISCOVERY PATHS (REQUIRED) ---
+  alternative_discovery_paths:
+    - method: ""                   # e.g., "Manual code review", "Fuzzing", "Static analysis"
+      confidence: ""               # HIGH / MEDIUM / LOW
+      rationale: ""
+  
+  # --- PHASE 5: HUNTING HEURISTICS (REQUIRED) ---
+  heuristics:
+    always_inspect: []             # What to always look for
+    never_trust: []                # What assumptions to reject
+    watch_for: []                  # Specific signals
+    key_api_families: []           # Important API categories
+    anti_patterns: []              # Common developer mistakes
+  
+  # --- PHASE 6: CONFIDENCE (REQUIRED) ---
+  confidence_statements:
+    - statement: ""                # The claim being assessed
+      label: ""                    # FACT / INFERENCE / SPECULATION
+      rationale: ""                # Why this label was chosen
+
+  # --- TECHNICAL DETAILS ---
+  technical_details:
+    root_cause: ""                 # Description of the root cause
+    entry_point_function: ""       # Function where exploitation begins
+    affected_code_paths:           # Source files and line ranges
+      - file: ""
+        lines: ""
+        function: ""
+    
+    prerequisites: []              # Conditions required for exploitation
+    impact: ""                     # Impact description
+    exploit_primitive: ""          # e.g., "OOB-W", "UAF", "integer wrap"
+
+  # --- REPRODUCTION ---
+  reproduction:
+    environment:
+      os: ""
+      dependencies: []
+      build_steps: []
+    
+    steps: []                      # Step-by-step reproduction
+    
+    expected_output: ""            # Expected proof signal
+  
+  # --- FIX INFORMATION (OPTIONAL) ---
+  fix:
+    patch_available: false
+    patch_commit: ""               # Commit hash
+    patch_description: ""
+    upsteam_pr: ""                 # PR link (optional)
+    vendor_notified: false
+    vendor_acknowledged: false
+  
+  # --- REFERENCES (OPTIONAL) ---
+  references: []
+```
+
+---
+
+## Example: CVE-2026-55200 (libssh2 Packet Length Wrap)
+
+```yaml
+vulnerability:
+  id: "CVE-2026-55200"
+  title: "libssh2 ssh2_transport_read() Unchecked packet_length Integer Wraparound"
+  aliases: []
+  
+  target:
+    product: "libssh2"
+    version_affected: "through 1.1.1"
+    language: "C"
+    operating_system: ["Linux", "Windows", "macOS"]
+    component: "src/transport.c:ssh2_transport_read()"
+    discovery_date: "2026-06-23"
+  
+  classification:
+    cwe_id: "CWE-190"
+    cve_id: "CVE-2026-55200"
+    type: "Integer Overflow → Heap Buffer Overflow"
+    severity: "Critical"
+    cvss_vector: ""
+    cvss_score: null
+  
+  facts:
+    - claim: "total_num = 4; packet_length decoded from SSH header; only packet_length < 1 rejected"
+      evidence_type: "source_code"
+      source: "src/transport.c:~1050-1060"
+      confidence: "FACT"
+    - claim: "packet_length=0xffffffff, mac_len=0, auth_len=16 → allocation size = 19"
+      evidence_type: "dynamic_analysis"
+      source: "poc/cve_2026_55200_probe.c"
+      confidence: "FACT"
+    - claim: "Upstream fix adds packet_length > LIBSSH2_PACKET_MAXPAYLOAD guard"
+      evidence_type: "source_code"
+      source: "commit 97acf3dfda80c91c3a8c9f2372546301d4a1a7a8"
+      confidence: "FACT"
+  
+  research_process:
+    entry_point: "Review libssh2 transport layer for integer handling bugs"
+    files_to_inspect:
+      - "src/transport.c (ssh2_transport_read)"
+    trust_boundaries:
+      - "Network packet to internal state transition"
+    invariants:
+      - "Allocation sizes must match actual packet sizes"
+    tools:
+      - "gcc -std=c11 (arithmetic verifier)"
+      - "Python (malicious SSH server scaffold)"
+  
+  research_timeline:
+    - step: 1
+      action: "Reviews libssh2 transport layer"
+      detail: "Inspects ssh2_transport_read() for integer handling bugs"
+    - step: 2
+      action: "Traces size calculations"
+      detail: "packet_length + mac_len + auth_len using 32-bit arithmetic"
+    - step: 3
+      action: "Computes wraparound case"
+      detail: "0xffffffff + 0 + 16 wraps modulo 2^32 → allocation size = 19"
+    - step: 4
+      action: "Verifies rejection check"
+      detail: "Only packet_length < 1 is checked, not overflow case"
+    - step: 5
+      action: "Builds arithmetic verifier"
+      detail: "C program demonstrating the wrap in the vulnerable code path"
+    - step: 6
+      action: "Creates malicious SSH server"
+      detail: "Python scaffold sending malformed encrypted packet"
+    - step: 7
+      action: "Builds local RCE harness"
+      detail: "Models 19-byte allocation overflow into callback pointer"
+
+  alternative_discovery_paths:
+    - method: "Manual code review"
+      confidence: "HIGH"
+      rationale: "Integer wrap visible in transport parsing function"
+    - method: "Static analysis"
+      confidence: "HIGH"
+      rationale: "Tools detecting 32-bit overflow in size calculations"
+    - method: "Arithmetic fuzzing"
+      confidence: "MEDIUM"
+      rationale: "Fuzzer sending crafted packet_length values"
+    - method: "CodeQL / Semgrep"
+      confidence: "HIGH"
+      rationale: "Query for '32-bit addition in allocation size context'"
+
+  heuristics:
+    always_inspect:
+      - "32-bit integer arithmetic in size/allocation calculations"
+      - "Operands from network packets in size computations"
+    never_trust:
+      - "Single boundary check (packet_length < 1) to prevent all overflows"
+    watch_for:
+      - "size_t promotion AFTER 32-bit arithmetic"
+      - "Small allocation from wrapped input → large input used later"
+    key_api_families:
+      - "malloc/calloc size calculations"
+      - "Protocol length field arithmetic"
+    anti_patterns:
+      - "'Small allocation from wrapped input' → 'large input used later'"
+
+  confidence_statements:
+    - statement: "Arithmetic verified in C with proof conditions"
+      label: "FACT"
+      rationale: "C program demonstrates exact vulnerable path"
+    - statement: "Upstream fix confirmed"
+      label: "FACT"
+      rationale: "Commit 97acf3df linked from README"
+    - statement: "Exploit reliability depends on target"
+      label: "SPECULATION"
+      rationale: "Depends on binary, allocator, mitigations — untested"
+  
+  technical_details:
+    root_cause: "32-bit integer wraps when adding packet_length + mac_len + auth_len"
+    entry_point_function: "ssh2_transport_read"
+    affected_code_paths:
+      - file: "src/transport.c"
+        lines: "~1050-1070"
+        function: "ssh2_transport_read"
+    
+    prerequisites:
+      - "Attacker controls SSH server-to-client packet stream"
+      - "Victim uses libssh2 through 1.1.1"
+    
+    impact: |
+      Heap buffer overflow leading to potential remote code execution.
+      19-byte allocation with controlled content overflow.
+    
+    exploit_primitive: "Integer wrap → undersized allocation → heap overflow"
+
+  reproduction:
+    environment:
+      os: "Linux, macOS, Windows, WSL"
+      dependencies: ["gcc", "libssh2 source"]
+      build_steps:
+        - "gcc -std=c11 -O0 -g -o probe poc/cve_2026_55200_probe.c"
+        - "./probe"
+    
+    steps:
+      - "Clone libssh2 source"
+      - "Build arithmetic verifier with gcc"
+      - "Run probe to confirm vulnerable32_allocation=19"
+    
+    expected_output: |
+      vulnerable32_decision=accepted
+      vulnerable32_allocation=19
+      fixed32_decision=rejected: out of boundary
+      result=PASS
+
+  fix:
+    patch_available: true
+    patch_commit: "97acf3dfda80c91c3a8c9f2372546301d4a1a7a8"
+    patch_description: "Add packet_length > LIBSSH2_PACKET_MAXPAYLOAD check before vulnerable addition"
+    vendor_notified: true
+    vendor_acknowledged: true
+  
+  references:
+    - "https://www.cve.org/CVERecord?id=CVE-2026-55200"
+    - "https://github.com/libssh2/libssh2/commit/97acf3dfda80c91c3a8c9f2372546301d4a1a7a8"
+```
+
+---
+
+## Example: Entry 11 — RustDesk (Dual Finding)
+
+```yaml
+vulnerability:
+  id: "entry-011"
+  title: "RustDesk Session Permission Issues"
+  aliases: []
+  
+  target:
+    product: "RustDesk"
+    version_affected: "commit ff226f6d8013dee2de5a6553abaf67bf32b3e875"
+    language: "Rust"
+    operating_system: ["Windows", "Linux", "macOS"]
+    component: "src/client.rs, src/server.rs, src/server/connection.rs"
+    discovery_date: "2026-06-25"
+  
+  classification:
+    type: "Auth Bypass / Privilege Escalation"
+    severity: "High"
+  
+  facts:
+    - claim: "Client derives relay secure mode from !signed_id_pk.is_empty()"
+      evidence_type: "source_code"
+      source: "src/client.rs:723"
+      confidence: "FACT"
+    - claim: "Missing signed key → empty message → returns without encryption key"
+      evidence_type: "source_code"
+      source: "src/client.rs:773-792"
+      confidence: "FACT"
+    - claim: "Server-side secure setup conditional on secure flag and key lengths"
+      evidence_type: "source_code"
+      source: "src/server.rs:200"
+      confidence: "FACT"
+    - claim: "FileTransfer login assigns AuthConnType::FileTransfer"
+      evidence_type: "source_code"
+      source: "src/server/connection.rs:1546"
+      confidence: "FACT"
+    - claim: "FileTransfer branch does NOT clear keyboard/input state"
+      evidence_type: "source_code"
+      source: "src/server/connection.rs:1816-1827"
+      confidence: "FACT"
+
+  # ... (truncated for brevity)
+```
+
+---
+
+## Example: Extraction from Hunting Heuristic (Auth Bypass)
+
+```yaml
+# This snippet shows how to encode a single heuristic as a reusable pattern
+heuristic_pattern:
+  id: "auth-001"
+  name: "Unconditional verify_* function"
+  category: "Authorization Bypass"
+  
+  signal:
+    description: "verify_* functions that unconditionally return true"
+    code_pattern: |
+      function verify_*() {
+          return true;  // ← no actual verification
+      }
+  
+  examples:
+    - target: "MyBB 1.8.40"
+      code: "UserDataHandler::verify_usergroup() → return true"
+      impact: "Limited ACP user → full Administrator"
+  
+  anti_pattern: |
+    "The form shouldn't show admin groups, so we don't need to check"
+    → Defense in depth violation
+  
+  remediation:
+    - "Audit every verify_* function for actual authorization logic"
+    - "Do not rely on UI-level restrictions for security"
+    - "Enforce authorization at the data handler layer"
+```
+
+---
+
+## Schema Validation Rules
+
+```yaml
+validation_rules:
+  required_fields:
+    - "vulnerability.id"
+    - "vulnerability.title"
+    - "vulnerability.target.product"
+    - "vulnerability.target.version_affected"
+    - "vulnerability.classification.type"
+    - "vulnerability.classification.severity"
+    - "vulnerability.facts[]"
+    - "vulnerability.facts[].claim"
+    - "vulnerability.facts[].confidence"
+    - "vulnerability.alternative_discovery_paths[]"
+    - "vulnerability.heuristics"
+    - "vulnerability.confidence_statements[]"
+  
+  confidence_values:
+    fact: "FACT"
+    inference: "INFERENCE"
+    speculation: "SPECULATION"
+  
+  evidence_type_values:
+    - "source_code"
+    - "dynamic_analysis"
+    - "runtime_trace"
+    - "poc_output"
+    - "vendor_advisory"
+    - "cve_record"
+  
+  severity_values:
+    - "Critical"
+    - "High"
+    - "Medium"
+    - "Low"
+    - "Informational"
+```
+
+---
+
+## Usage Notes
+
+1. **Extraction process:** Start with Phase 1 (Facts), then build the other sections
+2. **Confidence labels:** Every claim must have an explicit confidence label
+3. **Multi-finding entries:** Use `sub_findings: []` array for entries with multiple vulnerabilities
+4. **Missing information:** Mark missing required fields as `null` with a comment explaining why
+5. **Heuristics:** Extract from the vulnerability, not from general knowledge — each heuristic should be traceable to the specific finding
+
+---
+
+*This schema was derived from the Exploitarium vulnerability research methodology (Phase 1-6) and validated against 23 catalog entries. It is designed for both manual extraction and programmatic ingestion.*
