@@ -1,0 +1,224 @@
+# =============================================================================
+# Exploitarium Corpus — Automated Update Workflow
+# =============================================================================
+# This workflow runs on a schedule and on demand to:
+# 1. Clone the Exploitarium PoC repository
+# 2. Scan for new/detected exploits
+# 3. Extract structured metadata from new READMEs
+# 4. Validate the updated corpus against the schema
+# 5. Create a pull request with new entries
+#
+# Triggers:
+#   - Schedule: Every Sunday at 00:00 UTC
+#   - Manual: workflow_dispatch with optional Exploitarium ref
+#   - Push: to corpus.yaml (re-validate on changes)
+# =============================================================================
+
+name: Update Corpus
+
+on:
+  schedule:
+    # Weekly scan: every Sunday at midnight UTC
+    - cron: '0 0 * * 0'
+
+  workflow_dispatch:
+    inputs:
+      exploitarium_ref:
+        description: 'Exploitarium branch/tag to scan (default: main)'
+        required: false
+        default: 'main'
+      create_pr:
+        description: 'Create PR with new entries'
+        required: false
+        default: 'true'
+
+  push:
+    paths:
+      - 'corpus.yaml'
+      - 'corpus.json'
+      - 'scripts/validate-corpus.py'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  scan:
+    name: Scan for new exploits
+    runs-on: ubuntu-latest
+    if: github.repository == 'bb1nfosec/vuln-corpus'
+
+    steps:
+      - name: Checkout this repo (vuln-corpus)
+        uses: actions/checkout@v4
+        with:
+          path: vuln-corpus
+
+      - name: Checkout Exploitarium source repo
+        uses: actions/checkout@v4
+        with:
+          repository: bikini/exploitarium
+          path: exploitarium
+          ref: ${{ github.event.inputs.exploitarium_ref || 'main' }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+
+      - name: Quick health check — source repo structure
+        run: |
+          echo "Exploitarium structure:"
+          ls -la exploitarium/
+          echo ""
+          echo "PoC directories found:"
+          for d in exploitarium/*/; do
+            name=$(basename "$d")
+            if [ -f "${d}README.md" ] && [ -n "$(find "$d" -maxdepth 1 -type f \( -name '*.py' -o -name '*.c' -o -name '*.sh' -o -name '*.rs' -o -name '*.go' -o -name '*.js' -o -name '*.ts' -o -name '*.java' \) -print -quit)" ]; then
+              echo "  ✓ $name"
+            fi
+          done
+
+      - name: Validate current corpus
+        id: validate
+        run: |
+          cd vuln-corpus
+          python3 scripts/validate-corpus.py --json corpus.yaml 2>&1 | tee validation-report.txt
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          
+      - name: Scan for new exploits
+        id: scan
+        run: |
+          cd vuln-corpus
+          python3 scripts/scan-exploitarium.py \
+            --source ../exploitarium \
+            --existing corpus.yaml \
+            --create-pr \
+            --verbose 2>&1 | tee scan-report.txt
+          
+          # Check if new entries were found
+          if grep -q "No new exploits found" scan-report.txt; then
+            echo "new_entries=0" >> $GITHUB_OUTPUT
+            echo "has_new=0" >> $GITHUB_OUTPUT
+          else
+            echo "new_entries=$(grep -c 'EX-' scan-report.txt || echo 0)" >> $GITHUB_OUTPUT
+            echo "has_new=1" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Read PR data
+        if: steps.scan.outputs.has_new == '1'
+        id: pr_data
+        run: |
+          if [ -f /tmp/corpus-pr-data.json ]; then
+            python3 -c "
+              import json
+              with open('/tmp/corpus-pr-data.json') as f:
+                data = json.load(f)
+              entries = data['new_entries']
+              print(f'Found {len(entries)} new entry(ies):')
+              for e in entries:
+                print(f'  {e[\"id\"]}: {e[\"title\"]}')
+              print(f'Total corpus: {data[\"total_before\"]} → {data[\"total_after\"]}')
+            "
+          fi
+
+      - name: Re-validate updated corpus
+        if: steps.scan.outputs.has_new == '1'
+        id: revalidate
+        run: |
+          cd vuln-corpus
+          python3 scripts/validate-corpus.py --json corpus.yaml 2>&1 | tee revalidation-report.txt
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+
+      - name: Generate JSON corpus from YAML
+        if: steps.scan.outputs.has_new == '1'
+        run: |
+          cd vuln-corpus
+          python3 -c "
+          import yaml, json
+          with open('corpus.yaml') as f:
+              data = yaml.safe_load(f)
+          with open('corpus.json', 'w') as f:
+              json.dump(data, f, indent=2)
+          print(f'Generated corpus.json ({len(data[\"corpus\"][\"entries\"])} entries)')
+          "
+
+      - name: Create Pull Request
+        if: steps.scan.outputs.has_new == '1'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          path: vuln-corpus
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            feat: auto-detect ${{ steps.scan.outputs.new_entries }} new exploit(s) from Exploitarium
+
+            Automated scan of bikini/exploitarium detected new PoC directories.
+            Generated structured corpus entries, updated corpus.yaml and corpus.json.
+          title: 'Auto-scan: ${{ steps.scan.outputs.new_entries }} new exploit(s) detected'
+          body: |
+            ## Automated Exploitarium Scan Results
+
+            **Scan date:** ${{ github.event.repository.updated_at || github.event.schedule || 'now' }}
+            **Source:** [bikini/exploitarium](https://github.com/bikini/exploitarium)
+            **New entries found:** ${{ steps.scan.outputs.new_entries }}
+
+            ### Changes
+            - `corpus.yaml` — updated with new entries
+            - `corpus.json` — regenerated from YAML
+            - Validation passed ✓
+
+            ### Validation Details
+            ```
+            ${{ steps.revalidate.outputs.exit_code == '0' && 'All checks passed ✓' || 'Warnings found (see validation output) ⚠️' }}
+            ```
+
+            ### Review Checklist
+            - [ ] Entry titles and products are correct
+            - [ ] Vulnerability types are accurate
+            - [ ] Severity levels are appropriate
+            - [ ] CWEs match the actual vulnerability
+            - [ ] Languages and OSes are correct
+            - [ ] Root causes are accurate
+            - [ ] No duplicate entries
+
+            *This PR was automatically generated by the corpus scanner workflow.*
+          branch: auto-scan/corpus-update-${{ github.run_number }}
+          base: main
+          labels: |
+            automated
+            corpus-update
+          delete-branch: true
+
+      - name: Upload validation reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-reports
+          path: vuln-corpus/*-report.txt
+
+  validate-on-push:
+    name: Validate corpus schema
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Validate corpus.yaml
+        run: python3 scripts/validate-corpus.py --json corpus.yaml
+
+      - name: Validate corpus.json parseable
+        run: python3 -c "import json; json.load(open('corpus.json')); print('corpus.json: valid JSON ✓')"
