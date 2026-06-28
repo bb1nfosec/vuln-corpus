@@ -1,11 +1,18 @@
 # Exploitarium Vulnerability Corpus
 
+[![Update Corpus](https://github.com/bb1nfosec/vuln-corpus/actions/workflows/update-corpus.yml/badge.svg)](https://github.com/bb1nfosec/vuln-corpus/actions/workflows/update-corpus.yml)
+[![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](LICENSE)
+[![Entries](https://img.shields.io/badge/entries-23-blue.svg)](corpus.yaml)
+[![Schema](https://img.shields.io/badge/schema-validated-brightgreen.svg)](extraction-schema.yaml)
+
 > **Structured vulnerability dataset extracted from 23 proof-of-concept exploits.**
 > Methodology: Structured Research Reconstruction (Facts → Timeline → Alternatives → Heuristics → Confidence)
 
-## Overview
+## About
 
-This corpus is a structured, machine-readable dataset of 23 real-world vulnerabilities analyzed from the [Exploitarium](https://github.com/bikini/exploitarium) repository. Each entry includes target metadata, vulnerability classification, root cause analysis, exploit primitive, and discovery methodology.
+This corpus is a structured, machine-readable dataset of 23 real-world vulnerabilities, distilled from public proof-of-concept research in the [Exploitarium](https://github.com/bikini/exploitarium) repository. Each entry includes target metadata, vulnerability classification, root cause analysis, exploit primitive, and discovery methodology.
+
+It is a **derivative research dataset**: it records *what* the vulnerabilities are and *how they were found*, as searchable metadata — not operational exploit code. The aim is to make the underlying research easy to query, cross-reference, and learn from for defensive and educational purposes.
 
 **Size:** 23 entries across 14 vulnerability classes
 **Coverage:** C/C++, PHP, Go, Java, Rust, TypeScript, JavaScript — Windows, Linux, macOS
@@ -127,6 +134,18 @@ entries:
   count: 7
 ```
 
+## Attribution & Credits
+
+- **Corpus compilation & maintenance:** [@bb1nfosec](https://github.com/bb1nfosec) — structuring, schema, tooling, and cross-references.
+- **Underlying vulnerability research:** the [Exploitarium](https://github.com/bikini/exploitarium) project and its author. The PoCs and original write-ups live there; this repo is a structured index over that work.
+- **EX-005 (objdump OOB-W):** independently discovered earlier by [@4D4J](https://github.com/4D4J/objdump-Out-Of-Bounds-write) — credit to them for the prior PoC.
+- Upstream vulnerabilities belong to their respective projects and are documented in their CVE records and vendor advisories where applicable.
+
+## Responsible Use
+
+This dataset is intended for defensive security research, detection engineering, and education. It contains vulnerability *metadata*, not weaponized exploits. Only test against systems you own or are authorized to assess. See [SECURITY.md](SECURITY.md).
+
 ## License
 
-This corpus is provided for research and educational purposes. The underlying vulnerabilities are documented in their respective CVE records and vendor advisories where applicable.
+Licensed under [Creative Commons Attribution 4.0 International (CC BY 4.0)](LICENSE).
+You are free to share and adapt the material for any purpose, provided you give appropriate credit. See [`CITATION.cff`](CITATION.cff) for citation metadata.

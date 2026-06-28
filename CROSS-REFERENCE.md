@@ -18,7 +18,7 @@
 | EX-007 | 7-Zip RAR5 MotW/ADS Chain | High | Defender Bypass | 7-Zip 26.01 |
 | EX-008 | Ghidra 12.1.2 Conditional ACE/RCE | High | Conditional RCE | Ghidra 12.1.2 |
 | EX-009 | nghttp2 nghttpx HTTP/1.1 Upgrade Queue Poison | High | HTTP Smuggling | nghttp2 v1.69.0 |
-| EX-010 | **libssh2 CVE-2026-55200** Packet Length Wrap | **Critical** | Integer Overflow | libssh2 ≤1.1.1 |
+| EX-010 | **libssh2 CVE-2026-55200** Packet Length Wrap | **Critical** | Integer Overflow | libssh2 ≤1.11.1 |
 | EX-011 | RustDesk Session Permission Issues (2 findings) | High | Auth Bypass | RustDesk ff226f6d8 |
 | EX-012 | FFmpeg RASC DLTA Heap OOB-W → Calc | **Critical** | OOB-W → Calc | FFmpeg master |
 | EX-013 | MyBB 1.8.40 Limited ACP → Full Admin | High | Priv Esc | MyBB 1.8.40 |
@@ -91,7 +91,7 @@
 | **Defender Bypass (MotW)** | 1 | EX-007 |
 | **TOCTOU / Race** | 1 | EX-003 |
 | **Search Path Hijack** | 1 | EX-017 |
-| ****Total** | **23** | |
+| **Total** | **23** | |
 
 ---
 
@@ -166,15 +166,15 @@
 
 ## 7. By Discovery Method
 
-| Method | HIGH Confidence Count | Best for |
-|--------|----------------------|----------|
-| **Manual Code Review** | 23 of 23 | All entries — most effective overall |
-| **Structure-aware Fuzzing** | 6 | EX-002, EX-005, EX-006, EX-010, EX-022 |
-| **Static Analysis** | 5 | EX-010, EX-019, EX-006, EX-005 |
-| **Protocol Analysis** | 4 | EX-011, EX-009, EX-020 |
-| **Platform-Specific Testing** | 3 | EX-023, EX-017, EX-007 |
-| **Process / IPC Monitor** | 2 | EX-001, EX-016 |
-| **ASAN Fuzzing** | 2 | EX-002, EX-012 |
+| Method | Count | Entries |
+|--------|-------|---------|
+| **Manual code / source review** | 23 of 23 | Every entry is fundamentally source-driven (incl. the targeted audits in EX-004 and EX-008) |
+| **Fuzzing** (structure-aware / coverage-guided / ASAN) | 5 | EX-002, EX-005, EX-006, EX-012, EX-022 |
+| **Static analysis** (incl. CodeQL / Semgrep) | 4 | EX-005, EX-006, EX-010, EX-019 |
+| **Process / IPC monitoring** | 3 | EX-001, EX-016, EX-017 |
+| **Platform / OS-specific knowledge** | 3 | EX-007, EX-017, EX-023 |
+| **Protocol analysis** | 2 | EX-011, EX-020 |
+| **ASAN / sanitizer builds** | 2 | EX-002, EX-012 |
 
 ---
 
@@ -266,6 +266,7 @@ BY LANGUAGE:                                │ CWE-787  │
 | Resource | Link |
 |----------|------|
 | Exploitarium PoC Repository | https://github.com/bikini/exploitarium |
+| objdump OOB-W (EX-005) — independent prior discovery by 4D4J | https://github.com/4D4J/objdump-Out-Of-Bounds-write |
 | CVE-2026-55200 Record | https://www.cve.org/CVERecord?id=CVE-2026-55200 |
 | libssh2 Fix Commit | https://github.com/libssh2/libssh2/commit/97acf3dfda80c91c3a8c9f2372546301d4a1a7a8 |
 | nghttp2 Fix Commit | https://github.com/nghttp2/nghttp2/commit/ab28105c4a0197da24f8bfc414bc116055249e1e |

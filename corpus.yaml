@@ -102,7 +102,7 @@ corpus:
     - id: "EX-010"
       title: "libssh2 CVE-2026-55200 Packet Length Wraparound"
       cve: "CVE-2026-55200"
-      target: { product: "libssh2", version: "through 1.1.1", language: "C", os: ["Linux", "Windows", "macOS"], component: "src/transport.c:ssh2_transport_read()" }
+      target: { product: "libssh2", version: "through 1.11.1", language: "C", os: ["Linux", "Windows", "macOS"], component: "src/transport.c:ssh2_transport_read()" }
       classification: { type: "Integer Overflow → Heap Buffer Overflow", severity: "Critical", cwe: "CWE-190" }
       root_cause: "32-bit integer wraparound in packet_length + mac_len + auth_len; single boundary check insufficient"
       exploit_primitive: "19-byte allocation from 0xffffffff wrap → overflow into adjacent callback"

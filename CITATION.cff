@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+title: Exploitarium Vulnerability Corpus
+message: >-
+  If you use this corpus in your research, please cite it
+  using the metadata below.
+type: dataset
+authors:
+  - name: bb1nfosec
+    alias: bb1nfosec
+repository-code: https://github.com/bb1nfosec/vuln-corpus
+abstract: >-
+  A structured, machine-readable dataset of real-world
+  vulnerabilities extracted from public proof-of-concept
+  research in the Exploitarium repository. Each entry records
+  target metadata, vulnerability classification, root cause,
+  exploit primitive, and discovery methodology.
+keywords:
+  - vulnerability-research
+  - security
+  - dataset
+  - cwe
+  - exploit-corpus
+license: CC-BY-4.0
+version: "1.0"
+date-released: "2026-06-28"

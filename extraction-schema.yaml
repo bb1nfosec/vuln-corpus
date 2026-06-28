@@ -106,7 +106,7 @@ vulnerability:
     patch_available: false
     patch_commit: ""               # Commit hash
     patch_description: ""
-    upsteam_pr: ""                 # PR link (optional)
+    upstream_pr: ""                # PR link (optional)
     vendor_notified: false
     vendor_acknowledged: false
   
@@ -126,7 +126,7 @@ vulnerability:
   
   target:
     product: "libssh2"
-    version_affected: "through 1.1.1"
+    version_affected: "through 1.11.1"
     language: "C"
     operating_system: ["Linux", "Windows", "macOS"]
     component: "src/transport.c:ssh2_transport_read()"
@@ -239,7 +239,7 @@ vulnerability:
     
     prerequisites:
       - "Attacker controls SSH server-to-client packet stream"
-      - "Victim uses libssh2 through 1.1.1"
+      - "Victim uses libssh2 through 1.11.1"
     
     impact: |
       Heap buffer overflow leading to potential remote code execution.
